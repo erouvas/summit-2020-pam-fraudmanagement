@@ -1,0 +1,196 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: summit-2020-pam-fraudmanagement-fuse
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: ${APP_NAME}
+  spec: {}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${APP_NAME}
+    labels:
+      app: ${APP_NAME}
+      group: com.redhat.fuse.boosters
+      provider: fabric8
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${APP_NAME}:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: ${SOURCE_REPOSITORY_URL}
+        ref: ${SOURCE_REPOSITORY_REF}
+      type: Git
+      contextDir: fuse
+    strategy:
+      sourceStrategy:
+        env:
+          - name: BUILD_LOGLEVEL
+            value: '5'
+          - name: MAVEN_ARGS_APPEND
+            value: "-pl ${SOURCE_REPOSITORY_DIR}"
+          - name: ARTIFACT_DIR
+            value: "${SOURCE_REPOSITORY_DIR}/target"
+          - name: MAVEN_MIRROR_URL
+            value: "${MAVEN_MIRROR_URL}"
+          - name: ARTIFACT_COPY_ARGS
+            value: "${ARTIFACT_COPY_ARGS}"
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: fuse7-java-openshift:1.5
+          namespace: openshift
+        incremental: true
+      type: Source
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/port: "9779"
+      prometheus.io/scrape: "true"
+    labels:
+      expose: "true"
+      app: ${APP_NAME}
+      provider: fabric8
+      group: com.redhat.fuse.boosters
+    name: ${APP_NAME}
+  spec:
+    ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: prom
+      protocol: TCP
+      port: 9779
+      targetPort: 9779
+    selector:
+      app: ${APP_NAME}
+      provider: fabric8
+      group: com.redhat.fuse.boosters
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APP_NAME}
+      provider: fabric8
+      group: com.redhat.fuse.boosters
+    name: ${APP_NAME}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 2
+    selector:
+      app: ${APP_NAME}
+      provider: fabric8
+      group: com.redhat.fuse.boosters
+    strategy:
+      rollingParams:
+        timeoutSeconds: 3600
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APP_NAME}
+          provider: fabric8
+          group: com.redhat.fuse.boosters
+      spec:
+        containers:
+        - env:
+          - name: KUBERNETES_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          image: ${APP_NAME}:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 180
+          name: ${APP_NAME}
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          - containerPort: 9779
+            name: prometheus
+            protocol: TCP
+          - containerPort: 8778
+            name: jolokia
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+          securityContext:
+            privileged: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APP_NAME}
+        from:
+          kind: ImageStreamTag
+          name: ${APP_NAME}:latest
+      type: ImageChange
+- apiVersion: v1
+  kind: Route
+  metadata:
+    labels:
+      app: ${APP_NAME}
+      provider: fabric8
+      group: com.redhat.fuse.boosters
+    name: ${APP_NAME}
+  spec:
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: ${APP_NAME}
+parameters:
+  - name: APP_NAME
+    description: The name for the application
+    displayName: App Name
+    value: pam-fraudmanagement-fuse
+    required: true
+  - name: SOURCE_REPOSITORY_URL
+    description: The source URL for the application
+    displayName: Source URL
+    value: http://mygitea:3000/gitadmin/pam-fraudmanagement.git
+    required: true
+  - name: SOURCE_REPOSITORY_REF
+    description: The branch name for the application
+    displayName: Source Branch
+    value: master
+    required: true
+  - name: SOURCE_REPOSITORY_DIR
+    description: The location within the source repo of the application
+    displayName: Source Directory
+    value: .
+    required: true
+  - name: ARTIFACT_COPY_ARGS
+    description: Syntax to be used to copy uberjar files to the target directory
+    displayName: Copy Args
+    value: '*.jar'
+    required: true
+  - name: MAVEN_MIRROR_URL
+    description: Maven Nexus Repository to be used during build phase
+    displayName:
+    value: http://mavenrepo:8080/bucketrepo/
+    required: true

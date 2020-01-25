@@ -1,0 +1,7 @@
+= summit-2020-pam-fraudmanagement
+
+Proactive Fraud Detection with Cloud Native Case Management, Kafka and Decision Modelling
+
+    mvn clean install
+
+    oc process -f fuse/.openshiftio/application.yaml | oc create -f -
