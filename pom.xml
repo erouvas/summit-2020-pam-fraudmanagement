@@ -13,41 +13,77 @@
     <module>fuse</module>
   </modules>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>redhat-ga-repository</id>
-      <url>https://maven.repository.redhat.com/ga</url>
-      <releases />
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </pluginRepository>
-    <pluginRepository>
-      <id>redhat-ea-repository</id>
-      <url>https://maven.repository.redhat.com/earlyaccess/all</url>
-      <releases />
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </pluginRepository>
-  </pluginRepositories>
-  <repositories>
-    <repository>
-      <id>redhat-ga-repository</id>
-      <url>https://maven.repository.redhat.com/ga</url>
-      <releases />
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>redhat-ea-repository</id>
-      <url>https://maven.repository.redhat.com/earlyaccess/all</url>
-      <releases />
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
+  <profiles>
+    <profile>
+      <id>local</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>redhat-ga-repository</id>
+          <url>https://maven.repository.redhat.com/ga</url>
+          <releases />
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+          <id>redhat-ea-repository</id>
+          <url>https://maven.repository.redhat.com/earlyaccess/all</url>
+          <releases />
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+      <repositories>
+        <repository>
+          <id>redhat-ga-repository</id>
+          <url>https://maven.repository.redhat.com/ga</url>
+          <releases />
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+        <repository>
+          <id>redhat-ea-repository</id>
+          <url>https://maven.repository.redhat.com/earlyaccess/all</url>
+          <releases />
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+    </profile>
+    <profile>
+      <id>oncluster</id>
+      <activation>
+        <property>
+          <name>env.MAVENREPO_SERVICE_HOST</name>
+        </property>
+      </activation>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>bucketrepo</id>
+          <url>http://mavenrepo:8080/bucketrepo/</url>
+          <releases />
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+      <repositories>
+        <repository>
+          <id>bucketrepo</id>
+          <url>http://mavenrepo:8080/bucketrepo/</url>
+          <releases />
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
 </project>
 
